@@ -36,6 +36,8 @@ Example code: [CircuitPython](CircuitPython/internal-temp/)
 
 # Wifi Boost [ for Pico W ]
 
+![USB Power Switch Pro Wifi Boost Browser](assets/images/WifiBoost.png)
+
 Provides a website with On/Off/Refresh buttons at the top and On/Boost buttons for +15/30/45/60 minutes increments.
 
 Example code: [CircuitPython](CircuitPython/wifi-boost/)
