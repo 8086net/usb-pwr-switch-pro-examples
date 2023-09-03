@@ -33,3 +33,9 @@ Example code: [CircuitPython](CircuitPython/wifi-buttons/)
 Turns USB port on at a set temperature and off when it has decresed a set number of degrees C.
 
 Example code: [CircuitPython](CircuitPython/internal-temp/)
+
+# Wifi Boost [ for Pico W ]
+
+Provides a website with On/Off/Refresh buttons at the top and On/Boost buttons for +15/30/45/60 minutes increments.
+
+Example code: [CircuitPython](CircuitPython/wifi-boost/)
