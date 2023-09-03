@@ -27,3 +27,9 @@ Example code: [CircuitPython](CircuitPython/momentary-push/)
 Shows a simple website with buttons to toggle power on/off.
 
 Example code: [CircuitPython](CircuitPython/wifi-buttons/)
+
+# Internal Temperature Sensor [ for Pico / Pico W ]
+
+Turns USB port on at a set temperature and off when it has decresed a set number of degrees C.
+
+Example code: [CircuitPython](CircuitPython/internal-temp/)
