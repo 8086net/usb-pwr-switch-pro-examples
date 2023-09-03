@@ -76,8 +76,8 @@ try:
 	server = Server(pool, "/static", debug=True)
 	server.start(str(wifi.radio.ipv4_address))
 except OSError:
-	time.sleep(5)
 	print("Restarting (Web server setup failed)")
+	time.sleep(5)
 	microcontroller.reset()
 
 # Return current status of USB Power Switch
@@ -140,6 +140,6 @@ while True:
 	try:
 		server.poll()
 	except OSError:
-		time.sleep(5)
 		print("Restarting (Loop)")
+		time.sleep(5)
 		microcontroller.reset()
