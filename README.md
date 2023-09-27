@@ -41,3 +41,9 @@ Example code: [CircuitPython](CircuitPython/internal-temp/)
 Provides a website with On/Off/Refresh buttons at the top and On/Boost buttons for +15/30/45/60 minutes increments.
 
 Example code: [CircuitPython](CircuitPython/wifi-boost/)
+
+# Wifi RESTful Switch
+
+An untested example for Home Assistant users wishing to integrate the USB Power Switch Pro
+
+Example code: [CircuitPython](CircuitPython/wifi-RESTfulSwitch/)
