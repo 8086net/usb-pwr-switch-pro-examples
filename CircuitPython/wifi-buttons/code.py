@@ -5,6 +5,7 @@
 # Compatible Pico W
 #
 # 2023-09-02
+# 2023-09-27 Add support for Watchdog timer
 #
 # WiFi Buttons
 #
@@ -37,12 +38,21 @@ import microcontroller
 import socketpool
 from digitalio import DigitalInOut, Direction
 from adafruit_httpserver import Server, Request, Response, POST
+from watchdog import WatchDogMode
+
+# Set to True to use watchdog timer to reboot on CircuitPython crashes
+watchdogTimeout = False
 
 device_name = "USBSwitch"
 
 # Start with power on (True) or off (False)?
 
 initialState = False
+
+if watchdogTimeout:
+	wdt = microcontroller.watchdog
+	wdt.mode = WatchDogMode.RESET
+	wdt.timeout = 8
 
 # Setup GPIO pin for Power control
 
@@ -60,23 +70,28 @@ WiFi_Password = os.getenv('CIRCUITPY_WIFI_PASSWORD')
 if WiFi_SSID == None or WiFi_SSID == "" or WiFi_Password == None or WiFi_Password == "":
 	while True:
 		print("Waiting for WiFi details to be setup in settings.toml")
+		if watchdogTimeout: wdt.feed()
 		time.sleep(5)
 
 print("Connecting to WiFi")
 try:
+	if watchdogTimeout: wdt.feed()
 	wifi.radio.connect(WiFi_SSID, WiFi_Password)
 except OSError:
 	while True:
 		print("Unable to connect to WiFi, check details in settings.toml")
+		if watchdogTimeout: wdt.feed()
 		time.sleep(5)
 
 print("Starting web server")
 try:
+	if watchdogTimeout: wdt.feed()
 	pool = socketpool.SocketPool(wifi.radio)
 	server = Server(pool, "/static", debug=True)
 	server.start(str(wifi.radio.ipv4_address))
 except OSError:
 	print("Restarting (Web server setup failed)")
+	if watchdogTimeout: wdt.feed()
 	time.sleep(5)
 	microcontroller.reset()
 
@@ -138,8 +153,10 @@ def webpage():
 print("Waiting for requests from web browser")
 while True:
 	try:
+		if watchdogTimeout: wdt.feed()
 		server.poll()
 	except OSError:
 		print("Restarting (Loop)")
+		if watchdogTimeout: wdt.feed()
 		time.sleep(5)
 		microcontroller.reset()
