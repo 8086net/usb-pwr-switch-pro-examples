@@ -47,3 +47,13 @@ Example code: [CircuitPython](CircuitPython/wifi-boost/)
 An untested example for Home Assistant users wishing to integrate the USB Power Switch Pro
 
 Example code: [CircuitPython](CircuitPython/wifi-RESTfulSwitch/)
+
+#  WiFi MQTT Switch ProM [ for PicoW on ProM ]
+
+Turns power on/off using MQTT topic subscription.
+
+Periodically sends power usage information (voltage/current/power) over MQTT.
+
+Both of these aim to be compatible with Tasmota MQTT topics ("cmnd/USBSW/POWER" and "tele/USBSW/SENSOR") and formats.
+
+Example code: [CircuitPython](CircuitPython/wifi-mqtt-switch-prom/)

@@ -1,0 +1,21 @@
+# WiFi settings
+CIRCUITPY_WIFI_SSID = "yourWiFiSSID"
+CIRCUITPY_WIFI_PASSWORD = "yourWiFiPassword"
+
+# CircuitPython Web Workflow settings
+CIRCUITPY_WEB_API_PORT = 80
+CIRCUITPY_WEB_API_PASSWORD = "webPassword"
+# Replace with the name of this instance
+CIRCUITPY_WEB_INSTANCE_NAME = "PWRSW"
+
+# Your MQTT Broker details
+MQTT_BROKER = "127.0.0.1"
+MQTT_PORT = 1883
+MQTT_USERNAME = "MQTTusername"
+MQTT_PASSWORD = "MQTTpassword"
+
+MQTT_SENSOR_INTERVAL = 30
+
+# Replace PWRSW with this instances name
+MQTT_TOPIC_SENSOR = "tele/PWRSW/SENSOR"
+MQTT_TOPIC_POWER  = "cmnd/PWRSW/POWER"
