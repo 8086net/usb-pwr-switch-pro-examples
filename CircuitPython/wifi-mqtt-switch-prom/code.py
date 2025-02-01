@@ -4,7 +4,7 @@
 #
 # Compatible Pico W
 #
-# MQTT USB Switch with power monitoring
+# MQTT USB Power Switch with power monitoring
 #
 
 # This example requires the additional libraries adafruit_bus_device, adafruit_minimqtt, adafruit_register, adafruit_connection_manager, adafruit_ina219, adafruit_tricks
@@ -19,27 +19,31 @@
 #
 # Then run the following command to install the required modules.
 #
-# circup install --auto
+# circup [--path x:] install --auto
 
 import board
 import busio
 import wifi
-import ssl
-import socketpool
+import adafruit_connection_manager
 import os
 import digitalio
 import time
 import json
+import random
 import microcontroller
+import supervisor
 import adafruit_ina219
 import adafruit_minimqtt.adafruit_minimqtt as MQTT
+#import adafruit_logging as logging
 
 # Get options from config file
 MQTT_TOPIC_SENSOR = os.getenv("MQTT_TOPIC_SENSOR") or "tele/UNKNOWN/SENSOR"
 MQTT_TOPIC_POWER  = os.getenv("MQTT_TOPIC_POWER") or "cmnd/UNKNOWN/POWER"
 
-# Setup GPIO pin for Power control
+# Stop auto restart on file change (prevents toggling power unexpectedly)
+supervisor.runtime.autoreload=False
 
+# Setup GPIO pin for Power control
 pwrCtrl = digitalio.DigitalInOut(board.GP2)
 pwrCtrl.direction = digitalio.Direction.OUTPUT
 
@@ -70,34 +74,49 @@ def mqtt_message(client, topic, message):
 		pwrCtrl.value=False
 
 def mqtt_connected(client, userdata, flags, rc):
-	print(f"Connected to MQTT broker")
+	print("Connected to MQTT broker")
 	client.subscribe(MQTT_TOPIC_POWER)
 
 def mqtt_disconnect(client, userdata, rc):
-	print(f"Disconnected from MQTT broker resetting.")
+	print("Disconnected from MQTT broker restarting.")
 	time.sleep(5)
-	return #microcontroller.reset()
+	return
 
-# Handle restarting everything without actually restarting
+# Handles restarting everything without actually restarting
 # Don't restart unless we have to otherwise power will be switched off
 def start():
-	print("START")
+	print("Starting")
+
 	# Connect to Wifi
 	try:
 		print("Connecting to WiFi")
+		wifi.radio.enabled=False
+		wifi.radio.enabled=True
 		wifi.radio.connect(
 		    os.getenv("CIRCUITPY_WIFI_SSID"), os.getenv("CIRCUITPY_WIFI_PASSWORD")
 		)
-	except:
+	except Exception as e:
 		print("Unable to connect WiFi")
+		print(e)
 		time.sleep(5)
-		return #microcontroller.reset()
+		return
 
 	print(f"Connected to {os.getenv('CIRCUITPY_WIFI_SSID')}")
 	print(f"My IP address: {wifi.radio.ipv4_address}")
 
-	# Create a socket pool
-	pool = socketpool.SocketPool(wifi.radio)
+	# Check if the gateway is pingable (ping is IPv4 only)
+	gw = wifi.radio.ipv4_gateway
+	if gw != None:
+		print(f"Checking gateway {gw} responds to ping: ", end="")
+		time.sleep(0.5)
+		ping = wifi.radio.ping(gw)
+		if ping == None:
+			print("No.")
+			return
+		else:
+			print(f"Yes: {ping} seconds.")
+
+	adafruit_connection_manager.connection_manager_close_all(release_references=True)
 
 	# Set up a MiniMQTT Client
 	mqtt_client = MQTT.MQTT(
@@ -105,10 +124,11 @@ def start():
 		port=os.getenv("MQTT_PORT"),
 		username=os.getenv("MQTT_USERNAME"),
 		password=os.getenv("MQTT_PASSWORD"),
-		socket_pool=pool,
-		ssl_context=ssl.create_default_context(),
+		socket_pool=adafruit_connection_manager.get_radio_socketpool(wifi.radio),
+		ssl_context=adafruit_connection_manager.get_radio_ssl_context(wifi.radio),
 	)
-
+#	mqtt_client.logger = logging.getLogger()
+#	mqtt_client.logger.setLevel(logging.DEBUG)
 	mqtt_client.on_message = mqtt_message
 	mqtt_client.on_connect = mqtt_connected
 	mqtt_client.on_disconnect = mqtt_disconnect
@@ -117,12 +137,11 @@ def start():
 		print(f"Attempting to connect to {mqtt_client.broker}")
 		try:
 			mqtt_client.connect()
-		except Exception as exp:
-			print(exp)
+		except Exception as e:
+			print(e)
 			print("Unable to connect MQTT")
 			time.sleep(5)
-			return #microcontroller.reset()
-
+			return
 	while True:
 		try:
 			mA = sensor.current
@@ -131,15 +150,15 @@ def start():
 		except:
 			print("Unable to communicate with INA219")
 			time.sleep(5)
-			return #microcontroller.reset()
+			return
 
-		# Shouldn't be any voltag/current/power if it's turned off
-		if not pwrCtrl.value:
+		# Can't be any real usage if the output is turned off
+		if pwrCtrl.value == False:
 			v = 0
 			mA = 0
 			W = 0
-	
-		print("V: {:.3f} // mA: {:.3f} // W: {:.3f}".format(v, mA, W) )
+
+		print(f"V: {v:.3f} // mA: {mA:.3f} // W: {W:.3f}")
 
 		if sensor.overflow:
 			print("ERROR: overflow")
@@ -160,13 +179,13 @@ def start():
 				}
 			}
 
-		print("Publishing to %s" % MQTT_TOPIC_SENSOR)
+		print(f"Publishing to {MQTT_TOPIC_SENSOR}")
 		try:
 			mqtt_client.publish(MQTT_TOPIC_SENSOR, json.dumps(output))
 		except:
 			print("MQTT Publish error, restarting")
 			time.sleep(5)
-			return #microcontroller.reset()
+			return
 
 		# Wait before sending data again
 		print("Waiting for next poll")
@@ -175,9 +194,13 @@ def start():
 			mqtt_client.loop(timeout=1)
 			time.sleep(1)
 
-
 while True:
+	# Sleep up to "interval" seconds to prevent everything reconnecting at once after power outage/broker restart
+	r = random.randint(1,interval)
+	print(f"Waiting {r} seconds before [re]start.")
+	time.sleep( r )
 	try:
 		start()
 	except Exception as e:
-		print("Exception: "+e)
+		print("Exception")
+		print(e)
